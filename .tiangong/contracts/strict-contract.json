@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Strict Contract Schema",
+  "description": "Schema for core-tier skills with strict contracts",
+  "type": "object",
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique skill identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "input": {
+      "type": "object",
+      "description": "Input schema definition",
+      "required": ["schema"],
+      "properties": {
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema for input validation"
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Example inputs"
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Output schema definition",
+      "required": ["schema"],
+      "properties": {
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema for output validation"
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Example outputs"
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Possible error codes and descriptions",
+      "items": {
+        "type": "object",
+        "required": ["code", "description"],
+        "properties": {
+          "code": { "type": "string" },
+          "description": { "type": "string" },
+          "recoverable": { "type": "boolean" }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Execution constraints",
+      "properties": {
+        "max_tokens": { "type": "integer" },
+        "timeout_ms": { "type": "integer" },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_retries": { "type": "integer" },
+            "backoff_ms": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Required skills or resources",
+      "items": {
+        "type": "object",
+        "required": ["type", "id"],
+        "properties": {
+          "type": { "enum": ["skill", "resource", "api"] },
+          "id": { "type": "string" },
+          "version": { "type": "string" },
+          "optional": { "type": "boolean" }
+        }
+      }
+    },
+    "guarantees": {
+      "type": "object",
+      "description": "Service level guarantees",
+      "properties": {
+        "idempotent": { "type": "boolean" },
+        "deterministic": { "type": "boolean" },
+        "side_effect_free": { "type": "boolean" }
+      }
+    }
+  },
+  "required": ["skill_id", "version", "input", "output"]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Flexible Contract Schema",
+  "description": "Schema for experimental-tier skills with flexible contracts",
+  "type": "object",
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "description": "Unique skill identifier"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version string (any format)"
+    },
+    "input": {
+      "type": "object",
+      "description": "Optional input description",
+      "properties": {
+        "description": { "type": "string" },
+        "accepts": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "Optional output description",
+      "properties": {
+        "description": { "type": "string" },
+        "returns": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes about the skill"
+    },
+    "experimental_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Experimental features enabled"
+    }
+  },
+  "required": ["skill_id"]
+}
