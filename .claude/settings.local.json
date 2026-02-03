@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python:*)",
       "Bash(git reset:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRestructure skills for Claude Code compatibility\n\n- Move architecture to _architecture/ \\(preserved for reference\\)\n- Create 23 top-level skill entry points:\n  - L0: meta-commander, tiangong\n  - L1: code/doc/data/multi-agent orchestrators\n  - L2 Core: code-gen, code-review, test-gen, debug, refactor, doc-gen\n  - L2 Extended: api-design, db-schema, security-audit, perf-optimize\n  - L2 Experimental: prototype, arch-explore, creative-code\n  - Genesis: prime-mover\n  - Infra: skill-registry, lifecycle-manager, eval-engine, rlaif-engine\n- Each entry references detailed docs in _architecture/\n\nAll skills now invocable via /skill-name\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)"
     ]
   }
 }
