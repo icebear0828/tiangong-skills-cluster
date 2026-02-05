@@ -158,6 +158,57 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 
 ---
 
+## Git 域 Skill（Git Domain）
+
+### L0 总指挥
+
+| Skill ID | 能力描述 | 输入类型 | 输出类型 | 契约等级 |
+|----------|---------|---------|---------|---------|
+| git-commander | Git 任务路由、工作流调度、安全保护 | Git 任务描述 + 仓库上下文 | 路由决策 + 执行结果 | strict |
+
+### L1 编排器
+
+| Skill ID | 能力描述 | 编排范围 | 蓝图 |
+|----------|---------|---------|------|
+| commit-orchestrator | Smart Commit 全流程 | diff→敏感检测→消息生成→校验 | smart_commit.json |
+| pr-orchestrator | PR 创建/审查/合并 | diff→描述→审查→评论 | pr_review.json |
+| branch-orchestrator | 分支生命周期管理 | 命名→冲突→健康报告 | branch_management.json |
+| release-orchestrator | Changelog + 语义化版本 | 版本→日志→说明→发布 | release.json |
+
+### 蓝图资产
+
+| 蓝图 ID | 适用场景 | 模式 | 预估 Token |
+|---------|---------|------|-----------|
+| smart_commit | 智能提交 | quality (skill 链) | ~1500 |
+| pr_review | PR 创建/审查 | quality (skill 链) | ~2000 |
+| branch_management | 分支管理 | quality (skill 链) | ~1500 |
+| release | 发版 + Changelog | quality (skill 链) | ~1800 |
+
+### L2 核心 Git
+
+| Skill ID | 能力描述 | 输入类型 | 输出类型 | 契约等级 |
+|----------|---------|---------|---------|---------|
+| diff-analyzer | 解析 git diff，变更摘要、影响范围、风险评估 | git diff 输出 | 结构化变更分析 | strict |
+| commit-message-gen | 基于 diff 生成 Conventional Commits 消息 | diff 分析 + 惯例 | commit message | strict |
+| sensitive-file-detector | 检测 .env/密钥/凭证，阻止提交 | staged 文件列表 + 内容 | 违规报告 + 修复建议 | strict |
+| branch-validator | 分支命名规范、过期、冲突检查 | 分支列表 + 配置 | 验证报告 | strict |
+| conflict-resolver | 合并冲突分析 + 智能解决建议 | 冲突文件 + 分支 | 解决方案 | strict |
+| changelog-gen | 从 commit 历史生成 CHANGELOG.md | 提交历史 + 版本 | CHANGELOG 条目 | strict |
+| version-bumper | 基于 Conventional Commits 计算语义化版本 | git log + 当前版本 | 版本号 + bump 类型 | strict |
+
+### L2 扩展 Git
+
+| Skill ID | 能力描述 | 输入类型 | 输出类型 | 契约等级 |
+|----------|---------|---------|---------|---------|
+| commit-history-analyzer | 提交历史趋势、代码热区、贡献者统计 | git log + 分支 | 趋势报告 + 热点 + 统计 | standard |
+| pr-description-gen | 自动生成 PR 标题 + 描述 | diff + commit history | title + body | standard |
+| git-hook-manager | 安装/配置 git hooks + Claude Code hooks | 操作 + hook 列表 | 安装结果 | standard |
+| release-notes-gen | 面向用户的 Release Notes | changelog + 版本 | release notes markdown | standard |
+| conventional-commit-validator | commit message 格式校验 + 历史分析 | message / history | 校验结果 / 惯例 | standard |
+| pr-comment-poster | 审查结果格式化发布为 PR 评论 | review findings + PR | 发布结果 | standard |
+
+---
+
 ## 编排器 Skill
 
 | Skill ID | 编排范围 | 支持的 DAG 模式 |
@@ -173,6 +224,10 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 | knowledge-graph-orchestrator | 知识图谱构建 | sequential, parallel |
 | verification-orchestrator | 内化验证流程 | iterative |
 | micro-project-orchestrator | 微项目实践 | sequential, iterative |
+| commit-orchestrator | Smart Commit 流程 | static_linear |
+| pr-orchestrator | PR 创建/审查流程 | static_linear |
+| branch-orchestrator | 分支管理流程 | static_linear |
+| release-orchestrator | 发版流程 | static_linear |
 
 ## 基础设施 Skill
 
@@ -216,6 +271,17 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 - "调整语气" → tone-calibrator
 - "SEO优化" → seo-enhancer
 - "热点追踪" → trend-tracker
+
+### 单任务直接映射（Git 域）
+- "commit/提交/暂存" → git-commander
+- "pr/pull request/审查" → git-commander
+- "branch/分支/清理" → git-commander
+- "release/发版/changelog" → git-commander
+- "写 commit message" → commit-message-gen
+- "分析 diff" → diff-analyzer
+- "检查敏感文件" → sensitive-file-detector
+- "校验分支" → branch-validator
+- "检查 commit 格式" → conventional-commit-validator
 
 ### 多步骤任务 → 编排器
 - "实现这个功能并写测试" → code-orchestrator (code-gen → test-gen)

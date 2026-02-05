@@ -1,7 +1,7 @@
 ---
 name: tiangong
 description: >
-  天工 Skills Cluster 主入口。多层级 AI Agent 技能系统，包含 61 个可调用技能。
+  天工 Skills Cluster 主入口。多层级 AI Agent 技能系统，包含 78 个可调用技能。
   任何复杂任务都从这里开始分析和路由。
 ---
 
@@ -10,11 +10,11 @@ description: >
 ## 架构
 
 ```
-L0: meta-commander | writing-commander | evaluation-commander | learning-commander (任务路由)
+L0: meta-commander | writing-commander | evaluation-commander | learning-commander | git-commander (任务路由)
      ↓
-L1: adaptive-orchestrator | code-orchestrator | doc-orchestrator | multi-round-eval-orchestrator | learning-orchestrator | ...
+L1: adaptive-orchestrator | code-orchestrator | doc-orchestrator | multi-round-eval-orchestrator | learning-orchestrator | commit-orchestrator | pr-orchestrator | branch-orchestrator | release-orchestrator | ...
      ↓
-L2: code-gen, hook-generator, narrative-builder, initial-screener, knowledge-extractor...
+L2: code-gen, hook-generator, narrative-builder, initial-screener, knowledge-extractor, diff-analyzer, commit-message-gen...
      ↓
 Workers: title-worker, body-worker, cta-worker (轻量无状态)
 ```
@@ -22,7 +22,7 @@ Workers: title-worker, body-worker, cta-worker (轻量无状态)
 > 完整架构: [_architecture/](_architecture/)
 > 总指挥快速上手: [_architecture/references/commander-quick-start.md](_architecture/references/commander-quick-start.md)
 
-## 可用 Skills (61个)
+## 可用 Skills (78个)
 
 ### 写作域 — 创意内容
 | Skill | 用途 | 类型 |
@@ -90,6 +90,25 @@ Workers: title-worker, body-worker, cta-worker (轻量无状态)
 | `/arch-explore` | 架构探索 |
 | `/creative-code` | 创意编程 |
 
+### Git 域 — Git 管理与代码审查
+| Skill | 用途 | 类型 |
+|-------|------|------|
+| `/git-commander` | **Git 总入口** — 分析 git 任务, 路由到对应工作流 | L0 指挥 |
+| `/release-orchestrator` | 发布编排器 — 版本计算→变更日志→发布说明 | L1 编排 |
+| `/diff-analyzer` | Git Diff 分析 — 变更摘要、影响范围、风险等级 | L2 Core |
+| `/commit-message-gen` | Conventional Commits 消息生成 | L2 Core |
+| `/sensitive-file-detector` | 敏感文件/凭证检测, 阻止泄露 | L2 Core |
+| `/branch-validator` | 分支命名规范、过期、冲突检查 | L2 Core |
+| `/conflict-resolver` | 合并冲突分析 + 智能解决建议 | L2 Core |
+| `/changelog-gen` | CHANGELOG.md 生成 (keepachangelog) | L2 Core |
+| `/version-bumper` | 语义化版本计算 (Conventional Commits) | L2 Core |
+| `/conventional-commit-validator` | Commit 格式校验 + 历史模式分析 | L2 Extended |
+| `/pr-description-gen` | PR 标题 + 描述自动生成 | L2 Extended |
+| `/pr-comment-poster` | 审查结果格式化发布为 PR 评论 | L2 Extended |
+| `/commit-history-analyzer` | 提交历史趋势、代码热区、贡献者统计 | L2 Extended |
+| `/release-notes-gen` | 面向用户的 Release Notes 生成 | L2 Extended |
+| `/git-hook-manager` | Git hooks + Claude Code hooks 安装管理 | L2 Extended |
+
 ### 编排层 (L1)
 | Skill | 用途 |
 |-------|------|
@@ -97,6 +116,7 @@ Workers: title-worker, body-worker, cta-worker (轻量无状态)
 | `/doc-orchestrator` | 文档任务编排 |
 | `/data-orchestrator` | 数据任务编排 |
 | `/multi-agent-orchestrator` | 多代理编排 |
+| `/release-orchestrator` | 发布流程编排 (版本+日志+说明) |
 
 ### 指挥层 (L0)
 | Skill | 用途 |
@@ -105,6 +125,7 @@ Workers: title-worker, body-worker, cta-worker (轻量无状态)
 | `/writing-commander` | 写作域任务分析与路由 |
 | `/evaluation-commander` | 评审域任务分析与路由 |
 | `/learning-commander` | 学习域任务分析与路由 |
+| `/git-commander` | Git 域任务分析与路由 |
 
 ### 基础设施
 | Skill | 用途 |

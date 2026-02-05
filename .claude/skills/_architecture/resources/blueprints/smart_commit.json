@@ -1,0 +1,165 @@
+{
+  "id": "smart_commit",
+  "name": "Smart Commit Blueprint",
+  "description": "智能提交蓝图，编排 diff 分析→敏感检测→消息生成→格式校验的完整流程",
+  "version": "1.0.0",
+  "type": "static_linear",
+  "platform": "git",
+  "estimated_tokens": 1500,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "git-commander",
+    "tags": ["git", "commit", "conventional-commits", "security"],
+    "use_cases": [
+      "智能提交",
+      "自动生成 commit message",
+      "敏感文件检测",
+      "提交格式校验"
+    ]
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "repo_root": "",
+      "current_branch": "",
+      "staged_files": []
+    },
+    "content_zone": {
+      "diff_summary": null,
+      "commit_message": null
+    },
+    "control_zone": {
+      "sensitive_passed": false,
+      "format_valid": false,
+      "retries": 0,
+      "max_retries": 2
+    }
+  },
+
+  "steps": [
+    {
+      "id": "analyze",
+      "name": "Diff 分析",
+      "component": "diff-analyzer",
+      "component_type": "skill",
+      "scope": ["meta.repo_root", "meta.staged_files"],
+      "max_tokens": 500,
+      "config": {
+        "diff_mode": "staged",
+        "include_stats": true
+      },
+      "output": {
+        "target": "content.diff_summary"
+      }
+    },
+    {
+      "id": "security",
+      "name": "敏感文件检测",
+      "component": "sensitive-file-detector",
+      "component_type": "skill",
+      "scope": ["meta.staged_files"],
+      "max_tokens": 300,
+      "depends_on": [],
+      "parallel_with": ["conventions"],
+      "config": {
+        "use_config": ".claude/git-config.json"
+      },
+      "output": {
+        "target": "control.sensitive_passed"
+      }
+    },
+    {
+      "id": "conventions",
+      "name": "项目惯例分析",
+      "component": "conventional-commit-validator",
+      "component_type": "skill",
+      "scope": ["meta.repo_root"],
+      "max_tokens": 300,
+      "depends_on": [],
+      "parallel_with": ["security"],
+      "config": {
+        "mode": "analyze_history",
+        "history_count": 20
+      },
+      "output": {
+        "target": "content.project_conventions"
+      }
+    },
+    {
+      "id": "generate",
+      "name": "Commit Message 生成",
+      "component": "commit-message-gen",
+      "component_type": "skill",
+      "scope": ["content.diff_summary", "content.project_conventions"],
+      "max_tokens": 400,
+      "depends_on": ["analyze", "security", "conventions"],
+      "config": {
+        "language": "en"
+      },
+      "output": {
+        "target": "content.commit_message"
+      }
+    },
+    {
+      "id": "validate",
+      "name": "格式校验",
+      "component": "conventional-commit-validator",
+      "component_type": "skill",
+      "scope": ["content.commit_message"],
+      "max_tokens": 200,
+      "depends_on": ["generate"],
+      "config": {
+        "mode": "validate"
+      },
+      "output": {
+        "target": "control.format_valid"
+      },
+      "on_failure": {
+        "action": "retry_from",
+        "step": "generate",
+        "max_retries": 2
+      }
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_step": "security",
+      "check": "sensitive_passed",
+      "threshold": true,
+      "action_on_fail": "abort",
+      "abort_message": "Sensitive files detected. Please remove them from staging or add to .gitignore."
+    },
+    {
+      "after_step": "validate",
+      "check": "format_valid",
+      "threshold": true,
+      "action_on_fail": "retry_from_generate"
+    }
+  ],
+
+  "output_assembly": {
+    "format": "commit_ready",
+    "components": [
+      {
+        "name": "message",
+        "source": "content.commit_message.full_message"
+      },
+      {
+        "name": "analysis",
+        "source": "content.diff_summary"
+      },
+      {
+        "name": "security_report",
+        "source": "control.sensitive_passed"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true
+  }
+}

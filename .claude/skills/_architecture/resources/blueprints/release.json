@@ -1,0 +1,193 @@
+{
+  "id": "release",
+  "name": "语义化发布蓝图",
+  "description": "编排版本计算→变更日志→发布说明→用户确认的完整语义化发布流程",
+  "version": "1.0.0",
+  "type": "static_linear",
+  "platform": "git",
+  "estimated_tokens": 1800,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "release-orchestrator",
+    "tags": ["git", "release", "semver", "changelog", "conventional-commits"],
+    "use_cases": [
+      "语义化版本发布",
+      "自动 changelog 生成",
+      "发布说明生成",
+      "git tag 管理"
+    ]
+  },
+
+  "platform_constraints": {
+    "vcs": "git",
+    "commit_format": "conventional-commits",
+    "version_format": "semver-2.0",
+    "changelog_format": "keepachangelog-1.1.0",
+    "required_elements": ["version", "changelog", "release_notes", "git_tag"]
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "repo_root": "",
+      "tag_prefix": "v",
+      "changelog_file": "CHANGELOG.md",
+      "audience": "both"
+    },
+    "version_zone": {
+      "current_version": null,
+      "next_version": null,
+      "bump_type": null,
+      "breaking_changes": [],
+      "commit_summary": null
+    },
+    "content_zone": {
+      "git_log": [],
+      "changelog_entry": null,
+      "release_notes": null,
+      "highlights": [],
+      "migration_guide": null
+    },
+    "control_zone": {
+      "version_sanity_passed": false,
+      "user_confirmed": false,
+      "dry_run": false,
+      "actions_log": [],
+      "retries": 0,
+      "max_retries": 1
+    }
+  },
+
+  "steps": [
+    {
+      "id": "version_bump",
+      "name": "版本计算",
+      "component": "version-bumper",
+      "component_type": "skill",
+      "scope": ["meta.repo_root", "meta.tag_prefix", "content.git_log"],
+      "max_tokens": 400,
+      "config": {
+        "parse_format": "conventional-commits",
+        "version_format": "semver"
+      },
+      "output": {
+        "target": "version",
+        "fields": ["current_version", "next_version", "bump_type", "breaking_changes", "commit_summary"]
+      }
+    },
+    {
+      "id": "changelog",
+      "name": "变更日志生成",
+      "component": "changelog-gen",
+      "component_type": "skill",
+      "scope": ["content.git_log", "version.current_version", "version.next_version", "version.bump_type"],
+      "max_tokens": 600,
+      "depends_on": ["version_bump"],
+      "config": {
+        "format": "keepachangelog",
+        "include_hash": false,
+        "include_author": false
+      },
+      "output": {
+        "target": "content.changelog_entry"
+      }
+    },
+    {
+      "id": "release_notes",
+      "name": "发布说明生成",
+      "component": "release-notes-gen",
+      "component_type": "skill",
+      "scope": ["content.changelog_entry", "version", "meta.audience"],
+      "max_tokens": 600,
+      "depends_on": ["changelog"],
+      "config": {
+        "include_migration_guide": true,
+        "tone": "friendly"
+      },
+      "output": {
+        "target": "content.release_notes",
+        "fields": ["release_notes", "highlights", "migration_guide"]
+      }
+    },
+    {
+      "id": "confirm_release",
+      "name": "用户确认与执行",
+      "component": "release-orchestrator",
+      "component_type": "skill",
+      "scope": ["version", "content.changelog_entry", "content.release_notes", "meta", "control.dry_run"],
+      "max_tokens": 200,
+      "depends_on": ["release_notes"],
+      "config": {
+        "require_confirmation": true,
+        "destructive_ops": ["git_tag", "git_push"],
+        "actions": [
+          { "id": "update_changelog", "command": "prepend_to_file", "target": "CHANGELOG.md", "destructive": false },
+          { "id": "git_commit", "command": "git commit", "message_template": "chore(release): v{next_version}", "destructive": false },
+          { "id": "git_tag", "command": "git tag -a v{next_version}", "destructive": true },
+          { "id": "git_push", "command": "git push && git push --tags", "destructive": true }
+        ]
+      },
+      "output": {
+        "target": "control.actions_log"
+      }
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_step": "version_bump",
+      "check": "version_sanity",
+      "rules": [
+        { "rule": "bump_type_matches_commits", "description": "breaking → major, feat → minor, fix → patch" },
+        { "rule": "next_version_gt_current", "description": "next_version > current_version" },
+        { "rule": "breaking_requires_major", "description": "有 breaking changes 时 bump_type 必须为 major" },
+        { "rule": "semver_format_valid", "description": "版本号符合 SemVer 2.0" }
+      ],
+      "action_on_fail": "abort",
+      "abort_message": "Version sanity check failed. Please review the bump type and commit history."
+    },
+    {
+      "after_step": "confirm_release",
+      "check": "user_confirmation",
+      "rules": [
+        { "rule": "user_approved", "description": "用户已确认所有操作" },
+        { "rule": "dry_run_bypass", "description": "dry_run=true 时跳过 git 写操作" },
+        { "rule": "destructive_ops_confirmed", "description": "tag/push 等破坏性操作需单独确认" }
+      ],
+      "action_on_fail": "wait_for_confirmation",
+      "timeout_seconds": 300
+    }
+  ],
+
+  "output_assembly": {
+    "format": "release_report",
+    "components": [
+      {
+        "name": "version_info",
+        "source": "version"
+      },
+      {
+        "name": "changelog",
+        "source": "content.changelog_entry"
+      },
+      {
+        "name": "release_notes",
+        "source": "content.release_notes"
+      },
+      {
+        "name": "actions",
+        "source": "control.actions_log"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true,
+    "rollback_actions": [
+      "git tag -d v{next_version}",
+      "git reset HEAD~1"
+    ]
+  }
+}

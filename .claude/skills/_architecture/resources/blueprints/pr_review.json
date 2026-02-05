@@ -1,0 +1,147 @@
+{
+  "id": "pr_review",
+  "name": "PR Review Blueprint",
+  "description": "PR 审查蓝图，编排 diff 分析→代码审查→描述生成→评论发布的完整流程",
+  "version": "1.0.0",
+  "type": "static_linear",
+  "platform": "git",
+  "estimated_tokens": 2000,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "git-commander",
+    "tags": ["git", "pr", "review", "code-quality"],
+    "use_cases": [
+      "PR 代码审查",
+      "自动生成 PR 描述",
+      "Review 评论发布",
+      "代码质量检查"
+    ]
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "pr_number": null,
+      "base_branch": "",
+      "head_branch": "",
+      "repo_owner": "",
+      "repo_name": ""
+    },
+    "content_zone": {
+      "diff_summary": null,
+      "review_findings": null,
+      "pr_description": null,
+      "commit_history": null
+    },
+    "control_zone": {
+      "review_score": 0,
+      "review_passed": false,
+      "comments_posted": false
+    }
+  },
+
+  "steps": [
+    {
+      "id": "analyze",
+      "name": "PR Diff Analysis",
+      "component": "diff-analyzer",
+      "component_type": "skill",
+      "scope": ["meta.base_branch", "meta.head_branch"],
+      "max_tokens": 500,
+      "config": {
+        "diff_mode": "pr",
+        "include_stats": true
+      },
+      "output": {
+        "target": "content.diff_summary"
+      }
+    },
+    {
+      "id": "review",
+      "name": "Code Review",
+      "component": "code-review",
+      "component_type": "skill",
+      "scope": ["content.diff_summary"],
+      "max_tokens": 600,
+      "depends_on": ["analyze"],
+      "config": {
+        "focus_areas": ["security", "performance", "logic", "style"],
+        "severity_threshold": "minor"
+      },
+      "output": {
+        "target": "content.review_findings"
+      }
+    },
+    {
+      "id": "describe",
+      "name": "PR Description",
+      "component": "pr-description-gen",
+      "component_type": "skill",
+      "scope": ["content.diff_summary", "content.commit_history"],
+      "max_tokens": 500,
+      "depends_on": ["analyze"],
+      "config": {
+        "title_max_length": 70,
+        "include_test_plan": true,
+        "include_breaking_changes": true
+      },
+      "output": {
+        "target": "content.pr_description"
+      }
+    },
+    {
+      "id": "post",
+      "name": "Post Review Comments",
+      "component": "pr-comment-poster",
+      "component_type": "skill",
+      "scope": ["content.review_findings", "meta.pr_number", "meta.repo_owner", "meta.repo_name"],
+      "max_tokens": 400,
+      "depends_on": ["review"],
+      "config": {
+        "comment_mode": "both",
+        "idempotent": true
+      },
+      "output": {
+        "target": "control.comments_posted"
+      }
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_step": "review",
+      "check": "review_score",
+      "threshold": 0.7,
+      "action_on_fail": "list_blocking_issues",
+      "fail_message": "Code review score below threshold. Please address blocking issues before merging."
+    }
+  ],
+
+  "output_assembly": {
+    "format": "pr_review_report",
+    "components": [
+      {
+        "name": "diff_analysis",
+        "source": "content.diff_summary"
+      },
+      {
+        "name": "review_report",
+        "source": "content.review_findings"
+      },
+      {
+        "name": "pr_description",
+        "source": "content.pr_description"
+      },
+      {
+        "name": "comment_status",
+        "source": "control.comments_posted"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true
+  }
+}

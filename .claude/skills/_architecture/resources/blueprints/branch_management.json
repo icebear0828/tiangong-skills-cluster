@@ -1,0 +1,188 @@
+{
+  "id": "branch_management",
+  "name": "Branch Management Blueprint",
+  "description": "分支管理蓝图，编排分支验证→冲突解决→历史分析的完整分支管理流程",
+  "version": "1.0.0",
+  "type": "static_linear",
+  "platform": "git",
+  "estimated_tokens": 1500,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "branch-orchestrator",
+    "tags": ["git", "branch", "validation", "conflict-resolution", "history-analysis"],
+    "use_cases": [
+      "分支健康检查",
+      "合并前预检",
+      "分支清理与归档",
+      "仓库维护审计"
+    ]
+  },
+
+  "platform_constraints": {
+    "requires_git": true,
+    "min_git_version": "2.20.0",
+    "config_file": ".claude/git-config.json",
+    "required_commands": ["git branch", "git log", "git merge-tree", "git rev-parse"]
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "repo_root": "",
+      "target_branch": "main",
+      "config": {},
+      "branch_list": []
+    },
+    "data_zone": {
+      "validation_result": null,
+      "conflict_resolution": null,
+      "history_analysis": null
+    },
+    "control_zone": {
+      "conflicts_detected": false,
+      "naming_compliant": true,
+      "quality_gates_passed": [],
+      "retries": 0,
+      "max_retries": 1
+    },
+    "result_zone": {
+      "overall_health": null,
+      "action_items": []
+    }
+  },
+
+  "steps": [
+    {
+      "id": "validate",
+      "name": "分支验证",
+      "component": "branch-validator",
+      "component_type": "skill",
+      "scope": ["meta.repo_root", "meta.target_branch", "meta.config", "meta.branch_list"],
+      "max_tokens": 600,
+      "config": {
+        "use_config": ".claude/git-config.json",
+        "check_naming": true,
+        "check_stale": true,
+        "check_conflicts": true,
+        "check_protected": true
+      },
+      "output": {
+        "target": "data.validation_result",
+        "side_effects": [
+          { "condition": "conflicts.length > 0", "set": "control.conflicts_detected = true" },
+          { "condition": "naming_violations.length > 0", "set": "control.naming_compliant = false" }
+        ]
+      }
+    },
+    {
+      "id": "resolve_conflicts",
+      "name": "冲突解决",
+      "component": "conflict-resolver",
+      "component_type": "skill",
+      "scope": ["meta.target_branch", "data.validation_result.conflicts"],
+      "max_tokens": 500,
+      "depends_on": ["validate"],
+      "condition": {
+        "field": "control.conflicts_detected",
+        "equals": true,
+        "skip_message": "No conflicts detected, skipping conflict resolution"
+      },
+      "config": {
+        "resolution_strategy": "smart_merge",
+        "enable_refactor": true
+      },
+      "output": {
+        "target": "data.conflict_resolution"
+      }
+    },
+    {
+      "id": "analyze_history",
+      "name": "历史分析",
+      "component": "commit-history-analyzer",
+      "component_type": "skill",
+      "scope": ["meta.repo_root", "meta.target_branch", "meta.branch_list", "data.validation_result"],
+      "max_tokens": 400,
+      "depends_on": ["validate"],
+      "config": {
+        "analysis_type": ["all"],
+        "date_range_days": 90,
+        "hotspot_threshold": 10,
+        "include_merge_commits": false
+      },
+      "output": {
+        "target": "data.history_analysis"
+      }
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_step": "validate",
+      "check": "naming_compliance",
+      "condition": "control.naming_compliant == true",
+      "threshold": true,
+      "action_on_fail": "warn_and_continue",
+      "warning_message": "Branch naming violations detected. Review naming_violations for details."
+    },
+    {
+      "after_step": "resolve_conflicts",
+      "check": "conflict_severity",
+      "condition": "data.conflict_resolution.summary.overall_risk != 'high'",
+      "threshold": true,
+      "action_on_fail": "warn_and_continue",
+      "warning_message": "High-risk conflicts detected. Manual review recommended."
+    },
+    {
+      "after_step": "analyze_history",
+      "check": "health_threshold",
+      "condition": "result.overall_health.score >= 60",
+      "threshold": true,
+      "action_on_fail": "generate_improvement_plan"
+    }
+  ],
+
+  "output_assembly": {
+    "format": "branch_health_report",
+    "components": [
+      {
+        "name": "validation",
+        "source": "data.validation_result"
+      },
+      {
+        "name": "conflicts",
+        "source": "data.conflict_resolution",
+        "optional": true
+      },
+      {
+        "name": "history",
+        "source": "data.history_analysis"
+      },
+      {
+        "name": "health_score",
+        "source": "result.overall_health",
+        "transform": "calculate_health_score"
+      },
+      {
+        "name": "action_items",
+        "source": "result.action_items",
+        "transform": "sort_by_priority"
+      }
+    ],
+    "health_score_formula": {
+      "weights": {
+        "naming_score": 0.20,
+        "staleness_score": 0.25,
+        "conflict_score": 0.30,
+        "activity_score": 0.25
+      },
+      "calculation": "weighted_average"
+    }
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true,
+    "minimum_viable_output": ["validation"]
+  }
+}

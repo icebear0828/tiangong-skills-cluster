@@ -1,0 +1,38 @@
+{
+  "commit": {
+    "conventional": true,
+    "types": ["feat", "fix", "docs", "style", "refactor", "test", "chore", "ci"],
+    "max_subject_length": 72,
+    "require_body_for": ["feat", "fix"]
+  },
+  "pr": {
+    "require_description": true,
+    "auto_review": true,
+    "review_dimensions": ["logic", "security", "performance", "style"],
+    "template": "## Summary\n\n## Test Plan\n\n## Breaking Changes\n"
+  },
+  "branch": {
+    "naming_pattern": "^(feature|fix|hotfix|release|chore)/[a-z0-9-]+$",
+    "protected_branches": ["main", "master", "develop"],
+    "max_age_days": 30
+  },
+  "release": {
+    "changelog_format": "keepachangelog",
+    "version_strategy": "semver",
+    "tag_prefix": "v"
+  },
+  "sensitive_patterns": [
+    "\\.env$", "\\.env\\..+$", "credentials\\.json$", "secrets\\.ya?ml$",
+    ".*\\.pem$", ".*\\.key$", "id_rsa", ".*\\.p12$"
+  ],
+  "sensitive_content_patterns": [
+    "password\\s*=\\s*['\"].+['\"]",
+    "api_key\\s*=\\s*['\"].+['\"]",
+    "secret\\s*=\\s*['\"].+['\"]",
+    "token\\s*=\\s*['\"].+['\"]",
+    "AKIA[0-9A-Z]{16}"
+  ],
+  "sensitive_whitelist": [
+    ".env.example", "*.test.*", "*.spec.*"
+  ]
+}

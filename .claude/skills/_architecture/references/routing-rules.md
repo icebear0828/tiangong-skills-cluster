@@ -43,7 +43,10 @@
    │   └── meta-commander → learning-commander → learning-orchestrator
    │
    ├── 写作相关 → 写作域
-   │   └── meta-commander → writing-commander → writing-orchestrator
+   │   └── meta-commander → writing-commander → adaptive-orchestrator
+   │
+   ├── Git 相关 → Git 域
+   │   └── meta-commander → git-commander → commit/pr/branch/release-orchestrator
    │
    └── 跨域/复合 → 多代理
        └── meta-commander → multi-agent-orchestrator
@@ -282,6 +285,74 @@ adaptive-orchestrator
 | 需要策略规划 | Skill | 强推理能力，质量优先 |
 | 深度长文 | Skill | 复杂叙事需要上下文 |
 | 格式化/适配 | Worker | 规则明确，无需推理 |
+
+---
+
+## Git 域路由
+
+### 任务特征关键词
+
+| 关键词 | 目标 | 说明 |
+|--------|------|------|
+| commit, 提交, 暂存, smart commit | git-commander → commit-orchestrator | 智能提交流程 |
+| pr, pull request, 审查 | git-commander → pr-orchestrator | PR 创建/审查 |
+| branch, 分支, 清理, 过期 | git-commander → branch-orchestrator | 分支管理 |
+| release, 发版, changelog, 版本 | git-commander → release-orchestrator | 发版流程 |
+| "写 commit message" | commit-message-gen | S 级直连 |
+| "分析 diff" | diff-analyzer | S 级直连 |
+| "检查敏感文件" | sensitive-file-detector | S 级直连 |
+| "校验分支" | branch-validator | S 级直连 |
+| "检查 commit 格式" | conventional-commit-validator | S 级直连 |
+
+### 四大工作流路由
+
+```
+Smart Commit:
+├── diff-analyzer
+├── 并行 { sensitive-file-detector + conventional-commit-validator }
+├── [Gate: sensitive_passed]
+├── commit-message-gen
+├── [Gate: format_valid]
+└── 用户确认 → git commit
+
+PR Review:
+├── diff-analyzer
+├── code-review (复用已有 skill)
+├── [Gate: review_score ≥ 0.7]
+├── pr-description-gen
+├── pr-comment-poster
+└── gh pr create
+
+Branch Management:
+├── branch-validator
+├── conflict-resolver (条件: 有冲突时)
+│   └── 可调用 refactor (复杂结构冲突)
+└── commit-history-analyzer
+
+Release:
+├── version-bumper
+├── [Gate: version sanity]
+├── changelog-gen
+├── release-notes-gen
+└── 用户确认 → git commit + git tag + git push
+```
+
+### Git 复杂度路由
+
+| 复杂度 | 条件 | 路由目标 |
+|--------|------|---------|
+| S | 单一工具（分析 diff、写 message、检查文件） | 直接 L2 skill |
+| M | 完整工作流（smart commit、PR 创建、分支检查） | L1 编排器 |
+| L | 跨工作流（commit + PR 创建 + review） | 多编排器串行 |
+| XL | 完整发布流程 | release-orchestrator |
+
+### 安全路由规则
+
+所有涉及以下操作的路由必须插入用户确认环节：
+- `git push --force` → CRITICAL 确认
+- `git branch -D` → HIGH 确认
+- `git reset --hard` → CRITICAL 确认
+- `git tag` → MEDIUM 确认
 
 ---
 
