@@ -284,7 +284,6 @@ def check_directory_structure(base_path: Path) -> ValidationResult:
         "L2-execution/experimental",
         "infra",
         "genesis",
-        ".tiangong",
     ]
 
     existing = []
@@ -338,7 +337,7 @@ def run_full_validation(base_path: Path, registry_path: Optional[Path] = None) -
 
             # 验证每个注册的 Skill
             for skill_id, skill_info in registry.get("skills", {}).items():
-                skill_path = base_path / skill_info.get("path", skill_id)
+                skill_path = base_path / skill_info.get("arch_path", skill_info.get("path", skill_id))
                 tier = skill_info.get("tier", "experimental")
                 contract_level = skill_info.get("contract_level", "flexible")
 

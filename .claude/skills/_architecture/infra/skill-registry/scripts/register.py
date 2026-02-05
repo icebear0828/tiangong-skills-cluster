@@ -10,8 +10,16 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
-# 添加项目根目录到 path
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# 使用向上查找定位项目根
+_SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = _SCRIPT_DIR
+for _ in range(10):
+    if (PROJECT_ROOT / "registry.json").exists():
+        break
+    PROJECT_ROOT = PROJECT_ROOT.parent
+else:
+    PROJECT_ROOT = _SCRIPT_DIR.parent.parent.parent.parent
+
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from utils.registry_ops import (
@@ -46,7 +54,8 @@ def validate_before_register(skill_path: Path, tier: str) -> tuple:
 def main():
     parser = argparse.ArgumentParser(description="Register a new skill")
     parser.add_argument("--id", required=True, help="Skill ID")
-    parser.add_argument("--path", required=True, help="Relative path to skill directory")
+    parser.add_argument("--arch-path", required=True, help="Relative path to skill architecture directory")
+    parser.add_argument("--deploy-path", help="Relative path in .claude/skills/ (e.g. 'my-skill/')")
     parser.add_argument("--tier", required=True, choices=["core", "extended", "experimental"])
     parser.add_argument("--domains", required=True, help="Comma-separated domains")
     parser.add_argument("--ttl", type=int, help="TTL in hours for temp skills")
@@ -56,7 +65,7 @@ def main():
     args = parser.parse_args()
 
     skill_id = args.id
-    skill_path = PROJECT_ROOT / args.path
+    skill_path = PROJECT_ROOT / args.arch_path
     domains = [d.strip() for d in args.domains.split(",")]
 
     # 契约等级映射
@@ -103,7 +112,8 @@ def main():
         print("Dry run - would register:")
         print(f"  ID: {skill_id}")
         print(f"  Name: {name}")
-        print(f"  Path: {args.path}")
+        print(f"  Arch Path: {args.arch_path}")
+        print(f"  Deploy Path: {args.deploy_path or '(not deployed)'}")
         print(f"  Tier: {args.tier}")
         print(f"  Contract: {contract_level}")
         print(f"  Domains: {domains}")
@@ -116,9 +126,10 @@ def main():
         entry = register_skill(
             skill_id=skill_id,
             name=name,
-            path=args.path,
+            arch_path=args.arch_path,
             tier=args.tier,
             domains=domains,
+            deploy_path=args.deploy_path,
             contract_level=contract_level,
             ttl=args.ttl
         )
