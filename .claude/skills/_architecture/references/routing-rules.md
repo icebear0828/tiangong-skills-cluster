@@ -184,45 +184,104 @@ Phase 4: 应用 (Apply)
 | 调整语气、改变风格 | tone-calibrator | 直接调用 |
 | SEO优化、关键词优化 | seo-enhancer | 直接调用 |
 | 热点追踪、趋势分析 | trend-tracker | 直接调用 |
-| 小红书、公众号、Twitter | writing-commander | 根据平台路由 |
+| 小红书、公众号、Twitter | writing-commander | 根据平台选择蓝图 |
 
-### 三阶段写作路由
+### 蓝图选择路由 (新架构)
 
 ```
-Stage 1: 策划 (Planning)
-├── content-curator (复用)
-├── trend-tracker
-└── 受众分析
-
-Stage 2: 创作 (Creation) [迭代]
-├── hook-generator
-├── narrative-builder
-└── virality-scorer (评估)
-    └── 未达标 → 回到 hook-generator
-
-Stage 3: 分发 (Distribution)
-├── platform-adapter
-├── seo-enhancer (可选)
-└── tone-calibrator (可选)
+用户输入 → writing-commander
+              │
+              ├─ 平台识别 + 内容复杂度分析
+              │
+              ▼
+        ┌─────────────────────────────────────────────────────┐
+        │ Blueprint Selection (蓝图选择)                       │
+        │                                                     │
+        │ 小红书 + 短文案/种草    → xiaohongshu_viral         │
+        │   └─ Worker 链，省钱模式 (~1000 tokens)             │
+        │                                                     │
+        │ 公众号 + 深度文章       → wechat_longform           │
+        │   └─ Skill 链，质量模式 (~3500 tokens)              │
+        │                                                     │
+        │ Twitter + Thread        → twitter_thread            │
+        │   └─ 混合模式 (~2000 tokens)                        │
+        │                                                     │
+        │ 行业分析/深度研究       → deep_analysis             │
+        │   └─ 完整研究流程 (~4000 tokens)                    │
+        │                                                     │
+        │ 简单任务 (写标题)       → 直接 L2 Skill/Worker      │
+        │   └─ 最小开销 (<500 tokens)                         │
+        └─────────────────────────────────────────────────────┘
+              │
+              ▼
+        adaptive-orchestrator (执行选定蓝图)
 ```
 
-### 写作复杂度路由
+### 蓝图执行流程
 
-| 复杂度 | 条件 | 路由目标 |
-|--------|------|---------|
-| S | 单一任务（写标题/分析爆款） | 直接 L2 skill |
-| M | 单平台深度内容 | writing-orchestrator |
-| L | 多平台分发 | writing-orchestrator (multi_platform) |
-| XL | 跨域复合任务 | multi-agent-orchestrator |
+```
+adaptive-orchestrator
+    │
+    ├─ 加载蓝图 JSON 配置
+    │
+    ├─ 初始化黑板 (Blackboard)
+    │   └─ Meta Zone + Content Zone + Control Zone
+    │
+    ├─ 步骤执行循环
+    │   ├─ Context Slicer 切出最小数据
+    │   ├─ 调用 Worker/Skill
+    │   ├─ 结果写入黑板
+    │   └─ Middleware 检查 (敏感字/质量)
+    │
+    └─ 输出组装
+        └─ 从黑板收集最终内容
+```
+
+### 敏感字审查路由
+
+```
+所有内容生成 → sensitive-filter-middleware
+    │
+    ├─ Stage 2 验证: 与 virality-scorer 并行
+    │
+    └─ Stage 3 最终检查: 平台适配后
+        │
+        ├─ passed=true → 继续/输出
+        │
+        └─ passed=false
+            ├─ auto_fix=true → 自动修复 → 重新检查
+            └─ auto_fix=false → 返回问题列表
+```
+
+### 写作复杂度路由 (更新版)
+
+| 复杂度 | 条件 | 路由目标 | 蓝图 |
+|--------|------|---------|------|
+| S | 单一任务（写标题/分析爆款） | 直接 L2 skill | 无 |
+| M | 小红书短文案 | adaptive-orchestrator | xiaohongshu_viral |
+| M | 公众号深度文章 | adaptive-orchestrator | wechat_longform |
+| M | Twitter Thread | adaptive-orchestrator | twitter_thread |
+| L | 深度分析报告 | adaptive-orchestrator | deep_analysis |
+| L | 多平台分发 | adaptive-orchestrator | 多蓝图串行 |
+| XL | 跨域复合任务 | multi-agent-orchestrator | - |
 
 ### 平台识别规则
 
-| 关键词 | 识别为平台 |
-|--------|-----------|
-| 小红书、红书、xhs | xiaohongshu |
-| 公众号、微信、公号 | wechat |
-| twitter、推特、X | twitter |
-| 通用、不限平台 | general |
+| 关键词 | 识别为平台 | 默认蓝图 |
+|--------|-----------|---------|
+| 小红书、红书、xhs | xiaohongshu | xiaohongshu_viral |
+| 公众号、微信、公号 | wechat | wechat_longform |
+| twitter、推特、X | twitter | twitter_thread |
+| 通用、不限平台 | general | deep_analysis |
+
+### Worker vs Skill 选择规则
+
+| 条件 | 选择 | 原因 |
+|------|------|------|
+| 标准化短文案 | Worker | 低 Token 消耗，快速执行 |
+| 需要策略规划 | Skill | 强推理能力，质量优先 |
+| 深度长文 | Skill | 复杂叙事需要上下文 |
+| 格式化/适配 | Worker | 规则明确，无需推理 |
 
 ---
 

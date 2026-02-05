@@ -5,7 +5,30 @@
       "Bash(git reset:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nRestructure skills for Claude Code compatibility\n\n- Move architecture to _architecture/ \\(preserved for reference\\)\n- Create 23 top-level skill entry points:\n  - L0: meta-commander, tiangong\n  - L1: code/doc/data/multi-agent orchestrators\n  - L2 Core: code-gen, code-review, test-gen, debug, refactor, doc-gen\n  - L2 Extended: api-design, db-schema, security-audit, perf-optimize\n  - L2 Experimental: prototype, arch-explore, creative-code\n  - Genesis: prime-mover\n  - Infra: skill-registry, lifecycle-manager, eval-engine, rlaif-engine\n- Each entry references detailed docs in _architecture/\n\nAll skills now invocable via /skill-name\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(ls -la \"D:\\\\rag\\\\New folder\\\\.claude\\\\skills\\\\_architecture\\\\plans\"\" 2>&1 || ls -la \"D:ragNew folder.claudeskills\" 2>&1 || ls -la \"D:ragNew folder.claude \")",
+      "Bash(ls -la \"D:\\\\rag\\\\New folder\\\\.claude\\\\skills\\\\_architecture\\\\plans\"\" 2>/dev/null || echo \"Directory not found \")",
+      "Bash(ls:*)",
+      "Bash(node -e:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Writing Commander skill cluster \\(9 skills\\)\n\nWriting domain skill cluster for high-virality content creation:\n\nL0 Commander:\n- writing-commander: Task routing, content strategy, multi-platform dispatch\n\nL1 Orchestrator:\n- writing-orchestrator: Three-stage flow \\(Planning→Creation→Distribution\\)\n\nL2 Core \\(4 skills\\):\n- hook-generator: Title and hook generation with formulas\n- virality-scorer: Content virality analysis and optimization\n- narrative-builder: Narrative structure building\n- platform-adapter: Platform-specific content adaptation\n\nL2 Extended \\(3 skills\\):\n- tone-calibrator: Tone and style calibration\n- seo-enhancer: SEO optimization\n- trend-tracker: Trend tracking and content opportunities\n\nReference docs:\n- platform-strategies.md: Xiaohongshu, WeChat, Twitter strategies\n- writing-routing-rules.md: Domain routing rules\n- virality-patterns.md: Viral content pattern library\n\nUpdated registry.json \\(47→56 skills\\), capability-map.md, routing-rules.md\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:api-docs.deepseek.com)",
+      "Bash(dir:*)",
+      "Bash(for dir in writing-commander adaptive-orchestrator body-worker sensitive-filter cta-worker hook-generator title-worker tone-calibrator code-visualizer virality-scorer)",
+      "Bash(do if [ -f \"$dir/SKILL.md\" ])",
+      "Bash(then echo \"=== $dir ===\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix 15 audit issues: unified path model, file locking, metadata consistency\n\nCRITICAL:\n- Add arch_path/deploy_path dual-path model to registry.json \\(was single path\\)\n- Implement cross-platform file locking \\(msvcrt on Windows, fcntl on Unix\\)\n- save_registry\\(\\) and load_registry\\(\\) now use file_lock\\(\\)\n\nMAJOR:\n- Rename sensitive-filter-middleware to sensitive-filter in registry\n- update_metadata_counts\\(\\) now auto-maintains tier/layer/domain breakdowns\n- Mark 23 undeployed skills as planned \\(were incorrectly active\\)\n- Add evaluation-commander and learning-commander to root SKILL.md\n\nMODERATE:\n- Fix discover.py path comparison \\(string normalize instead of Path objects\\)\n- Replace hardcoded PROJECT_ROOT depth with upward registry.json search\n- Remove .tiangong from expected directories in skill_validator.py\n- Add version bump function \\(bump_version\\) to registry_ops.py\n\nMINOR:\n- Implement actual TTL expiration check in health_check.py\n- Health check now validates deploy directories and SKILL.md presence\n- create_empty_registry\\(\\) includes all breakdown fields\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)",
+      "Bash(for dir in ranking-synthesizer resurrection-evaluator final-candidate-reviewer confidence-calculator content-curator socratic-questioner spatial-mapper diagram-generator)",
+      "Bash(do)",
+      "Bash(path=\"D:\\\\rag\\\\New folder\\\\.claude\\\\skills/$dir\")",
+      "Bash(if [ -d \"$path\" ])",
+      "Bash(then)",
+      "Bash(if [ -f \"$path/SKILL.md\" ])",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "WebSearch"
     ]
   }
 }

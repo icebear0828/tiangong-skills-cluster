@@ -1,0 +1,424 @@
+{
+  "id": "deep_analysis",
+  "name": "深度分析蓝图",
+  "description": "通用深度分析内容生成蓝图，适用于行业洞察、趋势分析、专题研究等高质量长内容",
+  "version": "1.0.0",
+  "type": "adaptive",
+  "platform": "general",
+  "estimated_tokens": 4000,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "writing-commander",
+    "tags": ["analysis", "deep-content", "research", "quality"],
+    "use_cases": [
+      "行业分析报告",
+      "趋势洞察",
+      "技术深度解读",
+      "市场研究",
+      "专题研究"
+    ]
+  },
+
+  "content_constraints": {
+    "word_count": {
+      "min": 2000,
+      "max": 5000
+    },
+    "structure": {
+      "required": ["executive_summary", "introduction", "analysis_sections", "conclusion", "references"],
+      "optional": ["methodology", "data_appendix"]
+    },
+    "quality_standards": {
+      "data_backed": true,
+      "source_citations": true,
+      "logical_flow": true,
+      "actionable_insights": true
+    }
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "platform": "general",
+      "style": "analytical",
+      "tone": "professional"
+    },
+    "control_zone": {
+      "max_retries": 3,
+      "quality_threshold": 85
+    }
+  },
+
+  "stages": [
+    {
+      "id": "research",
+      "name": "研究阶段",
+      "mode": "parallel",
+      "description": "深度收集和分析相关资料",
+      "steps": [
+        {
+          "id": "primary_research",
+          "name": "一手资料收集",
+          "component": "content-curator",
+          "component_type": "skill",
+          "scope": ["meta.intent", "meta.topic", "meta.constraints"],
+          "max_tokens": 1000,
+          "config": {
+            "sources": ["web", "reference_materials", "academic"],
+            "depth": "comprehensive",
+            "recency": "prioritize_recent"
+          },
+          "output": {
+            "target": "meta.primary_sources"
+          }
+        },
+        {
+          "id": "trend_analysis",
+          "name": "趋势分析",
+          "component": "trend-tracker",
+          "component_type": "skill",
+          "scope": ["meta.topic"],
+          "max_tokens": 800,
+          "config": {
+            "analysis_depth": "comprehensive",
+            "time_range": "1y",
+            "include_predictions": true
+          },
+          "output": {
+            "target": "meta.trend_analysis"
+          }
+        },
+        {
+          "id": "competitive_scan",
+          "name": "竞品/同类分析",
+          "component": "content-curator",
+          "component_type": "skill",
+          "scope": ["meta.topic"],
+          "max_tokens": 600,
+          "config": {
+            "focus": "competitive_landscape",
+            "sources": ["industry_reports", "news"]
+          },
+          "output": {
+            "target": "meta.competitive_insights"
+          }
+        }
+      ],
+      "merge_strategy": "synthesize"
+    },
+    {
+      "id": "structuring",
+      "name": "结构化阶段",
+      "mode": "sequential",
+      "description": "构建分析框架和大纲",
+      "steps": [
+        {
+          "id": "framework",
+          "name": "分析框架设计",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.*"],
+          "max_tokens": 800,
+          "config": {
+            "mode": "framework_design",
+            "frameworks": ["SWOT", "Porter", "PESTEL", "custom"],
+            "select_best_fit": true
+          },
+          "output": {
+            "target": "content.framework"
+          }
+        },
+        {
+          "id": "outline",
+          "name": "详细大纲",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.*", "content.framework"],
+          "max_tokens": 600,
+          "depends_on": ["framework"],
+          "config": {
+            "mode": "detailed_outline",
+            "sections": {
+              "min": 4,
+              "max": 8
+            },
+            "include_key_points_per_section": true
+          },
+          "output": {
+            "target": "content.outline"
+          }
+        }
+      ]
+    },
+    {
+      "id": "creation",
+      "name": "创作阶段",
+      "mode": "sequential",
+      "retry_config": {
+        "max_retries": 3,
+        "retry_on": ["quality_below_threshold", "sensitive_filter_failed"]
+      },
+      "steps": [
+        {
+          "id": "executive_summary",
+          "name": "执行摘要",
+          "component": "hook-generator",
+          "component_type": "skill",
+          "scope": ["meta.*", "content.outline"],
+          "max_tokens": 600,
+          "config": {
+            "format": "executive_summary",
+            "length": {
+              "min": 150,
+              "max": 300
+            },
+            "include_key_findings": true,
+            "include_recommendations": true
+          },
+          "output": {
+            "target": "content.executive_summary"
+          }
+        },
+        {
+          "id": "introduction",
+          "name": "引言",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.intent", "meta.topic", "content.outline"],
+          "max_tokens": 500,
+          "depends_on": ["executive_summary"],
+          "config": {
+            "section": "introduction",
+            "include_context": true,
+            "include_scope": true,
+            "include_methodology_preview": true
+          },
+          "output": {
+            "target": "content.body.introduction"
+          }
+        },
+        {
+          "id": "analysis_sections",
+          "name": "分析章节",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.*", "content.outline", "content.framework"],
+          "max_tokens": 2500,
+          "depends_on": ["introduction"],
+          "config": {
+            "mode": "section_by_section",
+            "follow_outline": true,
+            "include_data": true,
+            "include_quotes": true,
+            "include_analysis": true,
+            "word_count_per_section": {
+              "min": 300,
+              "max": 800
+            }
+          },
+          "output": {
+            "target": "content.body.sections"
+          }
+        },
+        {
+          "id": "conclusion",
+          "name": "结论与建议",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.intent", "content.body.sections", "content.executive_summary"],
+          "max_tokens": 600,
+          "depends_on": ["analysis_sections"],
+          "config": {
+            "section": "conclusion",
+            "include_key_takeaways": true,
+            "include_recommendations": true,
+            "include_future_outlook": true
+          },
+          "output": {
+            "target": "content.body.conclusion"
+          }
+        },
+        {
+          "id": "validation",
+          "name": "验证",
+          "mode": "parallel",
+          "depends_on": ["conclusion"],
+          "sub_steps": [
+            {
+              "id": "quality_check",
+              "name": "质量评估",
+              "component": "virality-scorer",
+              "component_type": "skill",
+              "scope": ["content.executive_summary", "content.body.*"],
+              "max_tokens": 600,
+              "config": {
+                "mode": "analysis_quality",
+                "criteria": [
+                  "logical_coherence",
+                  "data_support",
+                  "actionability",
+                  "readability"
+                ]
+              },
+              "output": {
+                "target": "control.quality_scores"
+              }
+            },
+            {
+              "id": "sensitive_check",
+              "name": "敏感字审查",
+              "component": "sensitive-filter-middleware",
+              "component_type": "middleware",
+              "scope": ["meta.platform", "content.executive_summary", "content.body.*"],
+              "max_tokens": 300,
+              "config": {
+                "strictness": "standard",
+                "categories": ["political", "misleading"],
+                "auto_fix": true
+              },
+              "output": {
+                "target": "control.sensitive_filter"
+              }
+            }
+          ]
+        }
+      ],
+      "quality_gate": {
+        "check": "quality_score >= threshold AND sensitive_filter.passed",
+        "on_fail": {
+          "action": "targeted_improvement",
+          "focus_on_low_scores": true
+        }
+      }
+    },
+    {
+      "id": "finalization",
+      "name": "完成阶段",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "formatting",
+          "name": "格式化",
+          "component": "platform-adapter",
+          "component_type": "skill",
+          "scope": ["content.*"],
+          "max_tokens": 600,
+          "config": {
+            "format": "professional_report",
+            "add_table_of_contents": true,
+            "add_section_numbers": true,
+            "format_citations": true
+          },
+          "output": {
+            "target": "content.formatted"
+          }
+        },
+        {
+          "id": "references",
+          "name": "参考文献",
+          "component": "body-worker",
+          "component_type": "worker",
+          "scope": ["meta.primary_sources"],
+          "max_tokens": 200,
+          "depends_on": ["formatting"],
+          "config": {
+            "format": "academic",
+            "style": "APA"
+          },
+          "output": {
+            "target": "content.references"
+          }
+        },
+        {
+          "id": "final_check",
+          "name": "最终审查",
+          "component": "sensitive-filter-middleware",
+          "component_type": "middleware",
+          "scope": ["content.formatted", "content.references"],
+          "max_tokens": 200,
+          "depends_on": ["references"],
+          "config": {
+            "strictness": "strict",
+            "auto_fix": true
+          },
+          "output": {
+            "target": "control.final_sensitive_filter"
+          }
+        }
+      ]
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_stage": "creation",
+      "checks": [
+        {
+          "name": "quality_score",
+          "threshold": 85,
+          "action_on_fail": "iterate"
+        },
+        {
+          "name": "sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_and_retry"
+        }
+      ]
+    },
+    {
+      "after_stage": "finalization",
+      "checks": [
+        {
+          "name": "final_sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_content"
+        },
+        {
+          "name": "format_compliance",
+          "threshold": 100,
+          "action_on_fail": "reformat"
+        }
+      ]
+    }
+  ],
+
+  "output_assembly": {
+    "format": "analysis_report",
+    "components": [
+      {
+        "name": "title",
+        "source": "meta.topic",
+        "transform": "format_as_title"
+      },
+      {
+        "name": "executive_summary",
+        "source": "content.executive_summary"
+      },
+      {
+        "name": "table_of_contents",
+        "source": "content.outline",
+        "transform": "generate_toc"
+      },
+      {
+        "name": "body",
+        "source": "content.formatted"
+      },
+      {
+        "name": "references",
+        "source": "content.references"
+      },
+      {
+        "name": "metadata",
+        "include": ["word_count", "created_at", "version"]
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial_with_report",
+    "include_error_report": true,
+    "include_partial_content": true,
+    "include_research_materials": true
+  }
+}

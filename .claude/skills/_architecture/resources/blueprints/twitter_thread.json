@@ -1,0 +1,310 @@
+{
+  "id": "twitter_thread",
+  "name": "Twitter Thread 蓝图",
+  "description": "针对 Twitter/X 平台优化的 Thread 生成蓝图，支持多条推文链式叙事",
+  "version": "1.0.0",
+  "type": "adaptive",
+  "platform": "twitter",
+  "estimated_tokens": 2000,
+  "mode": "balanced",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "writing-commander",
+    "tags": ["twitter", "thread", "viral", "concise"],
+    "use_cases": [
+      "观点输出",
+      "知识分享",
+      "故事叙述",
+      "产品介绍"
+    ]
+  },
+
+  "platform_constraints": {
+    "tweet_max_length": 280,
+    "thread_length": {
+      "min": 3,
+      "max": 15
+    },
+    "structure": {
+      "first_tweet": "hook",
+      "middle_tweets": "content",
+      "last_tweet": "cta"
+    },
+    "formatting": {
+      "numbering": "optional",
+      "emojis": "moderate",
+      "line_breaks": true
+    },
+    "hashtag_count": {
+      "min": 1,
+      "max": 3
+    }
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "platform": "twitter",
+      "style": "punchy",
+      "tone": "direct"
+    },
+    "control_zone": {
+      "max_retries": 2,
+      "quality_threshold": 75
+    }
+  },
+
+  "stages": [
+    {
+      "id": "planning",
+      "name": "策划阶段",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "outline",
+          "name": "Thread 大纲",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.intent", "meta.topic", "meta.constraints"],
+          "max_tokens": 600,
+          "config": {
+            "mode": "outline_only",
+            "structure": "thread",
+            "points": {
+              "min": 5,
+              "max": 12
+            }
+          },
+          "output": {
+            "target": "content.outline"
+          }
+        }
+      ]
+    },
+    {
+      "id": "creation",
+      "name": "创作阶段",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "hook_tweet",
+          "name": "开篇推文",
+          "component": "hook-generator",
+          "component_type": "skill",
+          "scope": ["meta.intent", "meta.style", "content.outline"],
+          "max_tokens": 400,
+          "config": {
+            "format": "tweet",
+            "max_length": 280,
+            "styles": ["bold_claim", "question", "insight"],
+            "must_include": "thread_indicator"
+          },
+          "output": {
+            "target": "content.tweets[0]"
+          }
+        },
+        {
+          "id": "content_tweets",
+          "name": "内容推文",
+          "component": "body-worker",
+          "component_type": "worker",
+          "scope": ["meta.intent", "content.outline", "content.tweets[0]"],
+          "max_tokens": 800,
+          "depends_on": ["hook_tweet"],
+          "config": {
+            "format": "tweet_series",
+            "max_length_per_tweet": 280,
+            "count_based_on": "outline.points",
+            "style": "punchy",
+            "transitions": "numbered"
+          },
+          "output": {
+            "target": "content.tweets[1:-1]"
+          }
+        },
+        {
+          "id": "cta_tweet",
+          "name": "CTA推文",
+          "component": "cta-worker",
+          "component_type": "worker",
+          "scope": ["meta.platform", "content.tweets[0]", "content.outline"],
+          "max_tokens": 200,
+          "depends_on": ["content_tweets"],
+          "config": {
+            "format": "tweet",
+            "max_length": 280,
+            "types": ["follow", "retweet", "reply", "bookmark"],
+            "include_summary": true
+          },
+          "output": {
+            "target": "content.tweets[-1]"
+          }
+        },
+        {
+          "id": "hashtags",
+          "name": "话题标签",
+          "component": "body-worker",
+          "component_type": "worker",
+          "scope": ["meta.topic", "content.tweets[0]"],
+          "max_tokens": 100,
+          "depends_on": ["cta_tweet"],
+          "config": {
+            "count": 2,
+            "placement": "first_tweet_only",
+            "type": "trending_relevant"
+          },
+          "output": {
+            "target": "content.hashtags"
+          }
+        },
+        {
+          "id": "validation",
+          "name": "验证",
+          "mode": "parallel",
+          "depends_on": ["hashtags"],
+          "sub_steps": [
+            {
+              "id": "virality_check",
+              "name": "传播力评估",
+              "component": "virality-scorer",
+              "component_type": "skill",
+              "scope": ["content.tweets"],
+              "max_tokens": 400,
+              "config": {
+                "platform": "twitter",
+                "focus": ["hook_strength", "shareability"]
+              },
+              "output": {
+                "target": "control.quality_scores"
+              }
+            },
+            {
+              "id": "sensitive_check",
+              "name": "敏感字审查",
+              "component": "sensitive-filter-middleware",
+              "component_type": "middleware",
+              "scope": ["meta.platform", "content.tweets", "content.hashtags"],
+              "max_tokens": 200,
+              "config": {
+                "strictness": "platform_specific",
+                "categories": ["political", "violence", "adult", "spam", "platform_banned"],
+                "auto_fix": true
+              },
+              "output": {
+                "target": "control.sensitive_filter"
+              }
+            }
+          ]
+        }
+      ],
+      "quality_gate": {
+        "check": "virality_score >= threshold AND sensitive_filter.passed",
+        "on_fail": {
+          "action": "retry_from",
+          "step": "hook_tweet",
+          "with_feedback": true
+        }
+      }
+    },
+    {
+      "id": "polish",
+      "name": "润色阶段",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "format_check",
+          "name": "格式检查",
+          "component": "platform-adapter",
+          "component_type": "skill",
+          "scope": ["meta.platform", "content.tweets", "content.hashtags"],
+          "max_tokens": 400,
+          "config": {
+            "checks": [
+              "tweet_length <= 280",
+              "thread_continuity",
+              "hashtag_placement"
+            ],
+            "auto_fix": true
+          },
+          "output": {
+            "target": "content.platform_versions.twitter"
+          }
+        },
+        {
+          "id": "final_check",
+          "name": "最终审查",
+          "component": "sensitive-filter-middleware",
+          "component_type": "middleware",
+          "scope": ["meta.platform", "content.platform_versions.twitter"],
+          "max_tokens": 200,
+          "depends_on": ["format_check"],
+          "config": {
+            "strictness": "strict",
+            "auto_fix": true
+          },
+          "output": {
+            "target": "control.final_sensitive_filter"
+          }
+        }
+      ]
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_stage": "creation",
+      "checks": [
+        {
+          "name": "virality_score",
+          "threshold": 75,
+          "action_on_fail": "iterate"
+        },
+        {
+          "name": "sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_and_retry"
+        }
+      ]
+    },
+    {
+      "after_stage": "polish",
+      "checks": [
+        {
+          "name": "all_tweets_valid_length",
+          "threshold": true,
+          "action_on_fail": "truncate"
+        },
+        {
+          "name": "final_sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_content"
+        }
+      ]
+    }
+  ],
+
+  "output_assembly": {
+    "format": "twitter_thread",
+    "components": [
+      {
+        "name": "tweets",
+        "source": "content.platform_versions.twitter.tweets",
+        "format": "array"
+      },
+      {
+        "name": "hashtags",
+        "source": "content.hashtags"
+      },
+      {
+        "name": "thread_preview",
+        "source": "content.tweets[0]",
+        "description": "用于预览的第一条推文"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true
+  }
+}

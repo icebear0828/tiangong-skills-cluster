@@ -48,7 +48,17 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 
 | Skill ID | 能力描述 | 编排范围 | 支持的模式 |
 |----------|---------|---------|-----------|
-| writing-orchestrator | 三阶段写作流程编排 | 策划→创作→分发 | single_pass, iterative, multi_platform |
+| adaptive-orchestrator | 蓝图虚拟机，动态编排 Worker/Skill | 黑板+切片器+中间件 | static_linear, adaptive |
+| writing-orchestrator | ~~三阶段写作流程编排~~ (已废弃) | 策划→创作→分发 | single_pass, iterative, multi_platform |
+
+### 蓝图资产
+
+| 蓝图 ID | 适用场景 | 模式 | 预估 Token |
+|---------|---------|------|-----------|
+| xiaohongshu_viral | 小红书爆款短文案 | 省钱模式 (Worker 链) | ~1000 |
+| wechat_longform | 公众号深度长文 | 质量模式 (Skill 链) | ~3500 |
+| twitter_thread | Twitter Thread | 平衡模式 (混合) | ~2000 |
+| deep_analysis | 深度分析报告 | 质量模式 (完整研究) | ~4000 |
 
 ### L2 核心写作
 
@@ -58,6 +68,15 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 | virality-scorer | 分析内容传播潜力，优化互动 | 内容 + 平台 | 综合评分 + 维度得分 + 优化建议 | strict |
 | narrative-builder | 构建完整叙事结构 | 主题 + 结构类型 + 钩子 | 完整内容 + 分段 + 金句 | strict |
 | platform-adapter | 将通用内容适配到特定平台 | 内容 + 目标平台 | 适配内容 + 适配报告 | strict |
+| sensitive-filter-middleware | 敏感字审查+自动修复 | 内容 + 平台 + 配置 | 审查结果 + 修复内容 | strict |
+
+### L2 写作 Workers (轻量)
+
+| Worker ID | 能力描述 | Token 预算 | 状态特性 |
+|-----------|---------|-----------|---------|
+| title-worker | 无状态标题生成 | <500 | 纯函数 |
+| body-worker | 无状态正文生成 | <800 | 纯函数 |
+| cta-worker | 无状态 CTA 生成 | <300 | 纯函数 |
 
 ### L2 扩展写作
 
@@ -146,7 +165,8 @@ Meta-Commander 通过查阅此文件选择最优 skill 组合。
 | code-orchestrator | 代码领域多步骤任务 | sequential, iterative-refinement |
 | doc-orchestrator | 文档领域多步骤任务 | sequential |
 | data-orchestrator | 数据领域多步骤任务 | sequential, parallel |
-| writing-orchestrator | 写作领域三阶段流程 | single_pass, iterative, multi_platform |
+| adaptive-orchestrator | 蓝图驱动动态编排 | static_linear, adaptive |
+| writing-orchestrator | ~~写作领域三阶段流程~~ (已废弃) | single_pass, iterative, multi_platform |
 | multi-agent-orchestrator | 跨域复合任务 | all patterns |
 | multi-round-eval-orchestrator | 多轮评审流程 | sequential, parallel |
 | learning-orchestrator | 学习消化流程 | sequential |

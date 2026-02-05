@@ -1,0 +1,306 @@
+{
+  "id": "wechat_longform",
+  "name": "公众号深度长文蓝图",
+  "description": "针对微信公众号优化的深度长文生成蓝图，采用Skill链实现高质量内容创作",
+  "version": "1.0.0",
+  "type": "adaptive",
+  "platform": "wechat",
+  "estimated_tokens": 3500,
+  "mode": "quality",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "writing-commander",
+    "tags": ["wechat", "longform", "deep-content", "quality"],
+    "use_cases": [
+      "行业分析",
+      "深度解读",
+      "观点文章",
+      "教程指南"
+    ]
+  },
+
+  "platform_constraints": {
+    "title_max_length": 64,
+    "body_word_count": {
+      "min": 1500,
+      "max": 3000
+    },
+    "structure": {
+      "required": ["title", "lead", "sections", "conclusion", "cta"],
+      "optional": ["subtitle", "abstract"]
+    },
+    "formatting": {
+      "section_headers": true,
+      "bold_quotes": true,
+      "paragraph_spacing": "medium"
+    }
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "platform": "wechat",
+      "style": "professional",
+      "tone": "authoritative"
+    },
+    "control_zone": {
+      "max_retries": 3,
+      "quality_threshold": 80
+    }
+  },
+
+  "stages": [
+    {
+      "id": "planning",
+      "name": "策划阶段",
+      "mode": "parallel",
+      "steps": [
+        {
+          "id": "research",
+          "name": "素材研究",
+          "component": "content-curator",
+          "component_type": "skill",
+          "scope": ["meta.intent", "meta.topic"],
+          "max_tokens": 800,
+          "config": {
+            "sources": ["web", "reference_materials"],
+            "depth": "thorough"
+          },
+          "output": {
+            "target": "meta.reference_summary"
+          }
+        },
+        {
+          "id": "trends",
+          "name": "热点分析",
+          "component": "trend-tracker",
+          "component_type": "skill",
+          "scope": ["meta.topic", "meta.platform"],
+          "max_tokens": 600,
+          "config": {
+            "platforms": ["wechat"],
+            "time_range": "7d"
+          },
+          "output": {
+            "target": "meta.trend_insights"
+          }
+        }
+      ],
+      "merge_strategy": "combine"
+    },
+    {
+      "id": "creation",
+      "name": "创作阶段",
+      "mode": "sequential",
+      "retry_config": {
+        "max_retries": 3,
+        "retry_on": ["quality_below_threshold", "sensitive_filter_failed"]
+      },
+      "steps": [
+        {
+          "id": "hook",
+          "name": "标题与开头",
+          "component": "hook-generator",
+          "component_type": "skill",
+          "scope": ["meta.*", "control.quality_scores"],
+          "max_tokens": 1000,
+          "config": {
+            "variants": 5,
+            "styles": ["question", "statement", "insight", "data", "story"],
+            "include_opening": true,
+            "length_limit": 64
+          },
+          "output": {
+            "target": "content.hook"
+          }
+        },
+        {
+          "id": "narrative",
+          "name": "叙事构建",
+          "component": "narrative-builder",
+          "component_type": "skill",
+          "scope": ["meta.*", "content.hook.*"],
+          "max_tokens": 2000,
+          "depends_on": ["hook"],
+          "config": {
+            "structure": "problem_solution",
+            "sections": {
+              "min": 3,
+              "max": 5
+            },
+            "include_quotes": true,
+            "include_data": true
+          },
+          "output": {
+            "target": "content.body"
+          }
+        },
+        {
+          "id": "validation",
+          "name": "验证阶段",
+          "mode": "parallel",
+          "depends_on": ["narrative"],
+          "sub_steps": [
+            {
+              "id": "virality_check",
+              "name": "传播力评估",
+              "component": "virality-scorer",
+              "component_type": "skill",
+              "scope": ["content.hook.selected", "content.body.content"],
+              "max_tokens": 500,
+              "config": {
+                "platform": "wechat"
+              },
+              "output": {
+                "target": "control.quality_scores"
+              }
+            },
+            {
+              "id": "sensitive_check",
+              "name": "敏感字审查",
+              "component": "sensitive-filter-middleware",
+              "component_type": "middleware",
+              "scope": ["meta.platform", "content.hook.selected", "content.body.content"],
+              "max_tokens": 200,
+              "config": {
+                "strictness": "platform_specific",
+                "categories": ["political", "violence", "adult", "misleading", "platform_banned"],
+                "auto_fix": true
+              },
+              "output": {
+                "target": "control.sensitive_filter"
+              }
+            }
+          ]
+        }
+      ],
+      "quality_gate": {
+        "check": "virality_score >= threshold AND sensitive_filter.passed",
+        "on_fail": {
+          "action": "retry_from",
+          "step": "hook",
+          "with_feedback": true
+        }
+      }
+    },
+    {
+      "id": "distribution",
+      "name": "分发阶段",
+      "mode": "sequential",
+      "steps": [
+        {
+          "id": "format",
+          "name": "格式优化",
+          "component": "platform-adapter",
+          "component_type": "skill",
+          "scope": ["meta.platform", "content.hook.selected", "content.body.*"],
+          "max_tokens": 800,
+          "config": {
+            "platform": "wechat",
+            "formatting": {
+              "add_section_headers": true,
+              "bold_key_points": true,
+              "add_reading_time": true
+            }
+          },
+          "output": {
+            "target": "content.platform_versions.wechat"
+          }
+        },
+        {
+          "id": "seo",
+          "name": "SEO优化",
+          "component": "seo-enhancer",
+          "component_type": "skill",
+          "scope": ["meta.topic", "content.platform_versions.wechat"],
+          "max_tokens": 400,
+          "depends_on": ["format"],
+          "config": {
+            "optimize_for": ["search", "share"],
+            "add_meta_description": true
+          },
+          "output": {
+            "target": "content.metadata"
+          }
+        },
+        {
+          "id": "final_check",
+          "name": "最终审查",
+          "component": "sensitive-filter-middleware",
+          "component_type": "middleware",
+          "scope": ["meta.platform", "content.platform_versions.wechat"],
+          "max_tokens": 200,
+          "depends_on": ["seo"],
+          "config": {
+            "strictness": "strict",
+            "auto_fix": true
+          },
+          "output": {
+            "target": "control.final_sensitive_filter"
+          }
+        }
+      ]
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_stage": "creation",
+      "checks": [
+        {
+          "name": "virality_score",
+          "threshold": 80,
+          "action_on_fail": "iterate"
+        },
+        {
+          "name": "sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_and_retry"
+        }
+      ]
+    },
+    {
+      "after_stage": "distribution",
+      "checks": [
+        {
+          "name": "platform_compliance",
+          "threshold": 100,
+          "action_on_fail": "adjust"
+        },
+        {
+          "name": "final_sensitive_filter.passed",
+          "threshold": true,
+          "action_on_fail": "fix_content"
+        }
+      ]
+    }
+  ],
+
+  "output_assembly": {
+    "format": "wechat_article",
+    "components": [
+      {
+        "name": "title",
+        "source": "content.hook.selected"
+      },
+      {
+        "name": "abstract",
+        "source": "content.metadata.meta_description"
+      },
+      {
+        "name": "body",
+        "source": "content.platform_versions.wechat.body"
+      },
+      {
+        "name": "metadata",
+        "source": "content.metadata"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial_with_report",
+    "include_error_report": true,
+    "include_partial_content": true
+  }
+}

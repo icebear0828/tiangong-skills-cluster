@@ -1,0 +1,192 @@
+{
+  "id": "xiaohongshu_viral",
+  "name": "小红书爆款文案蓝图",
+  "description": "针对小红书平台优化的爆款短文案生成蓝图，采用轻量Worker链实现高效低成本内容生产",
+  "version": "1.0.0",
+  "type": "static_linear",
+  "platform": "xiaohongshu",
+  "estimated_tokens": 1000,
+  "mode": "economy",
+
+  "metadata": {
+    "created_at": "2026-02-05T00:00:00Z",
+    "author": "writing-commander",
+    "tags": ["xiaohongshu", "viral", "short-form", "economy"],
+    "use_cases": [
+      "种草文案",
+      "产品推荐",
+      "生活分享",
+      "知识科普"
+    ]
+  },
+
+  "platform_constraints": {
+    "title_max_length": 20,
+    "body_word_count": {
+      "min": 500,
+      "max": 1000
+    },
+    "emoji_density": "high",
+    "hashtag_count": {
+      "min": 3,
+      "max": 8
+    },
+    "required_elements": ["hook", "body", "cta", "hashtags"]
+  },
+
+  "blackboard_init": {
+    "meta_zone": {
+      "platform": "xiaohongshu",
+      "style": "casual",
+      "tone": "friendly"
+    },
+    "control_zone": {
+      "max_retries": 2,
+      "quality_threshold": 75
+    }
+  },
+
+  "steps": [
+    {
+      "id": "title",
+      "name": "标题生成",
+      "component": "title-worker",
+      "component_type": "worker",
+      "scope": ["meta.intent", "meta.platform", "meta.style"],
+      "max_tokens": 300,
+      "config": {
+        "variants": 3,
+        "styles": ["numeric", "suspense", "pain_point"],
+        "length_limit": 20
+      },
+      "output": {
+        "target": "content.hook.variants",
+        "select_best": true,
+        "selection_criteria": "highest_score"
+      }
+    },
+    {
+      "id": "body",
+      "name": "正文生成",
+      "component": "body-worker",
+      "component_type": "worker",
+      "scope": ["meta.intent", "meta.constraints", "content.hook.selected"],
+      "max_tokens": 500,
+      "depends_on": ["title"],
+      "config": {
+        "word_count": {
+          "min": 500,
+          "max": 800
+        },
+        "structure": "xiaohongshu_flow",
+        "emoji_density": "medium-high",
+        "paragraph_style": "short"
+      },
+      "output": {
+        "target": "content.body"
+      }
+    },
+    {
+      "id": "cta",
+      "name": "CTA生成",
+      "component": "cta-worker",
+      "component_type": "worker",
+      "scope": ["meta.platform", "content.hook.selected"],
+      "max_tokens": 150,
+      "depends_on": ["body"],
+      "config": {
+        "type": ["follow", "save", "comment"],
+        "style": "soft_sell"
+      },
+      "output": {
+        "target": "content.cta"
+      }
+    },
+    {
+      "id": "hashtags",
+      "name": "话题标签生成",
+      "component": "body-worker",
+      "component_type": "worker",
+      "scope": ["meta.intent", "content.hook.selected"],
+      "max_tokens": 100,
+      "depends_on": ["body"],
+      "config": {
+        "count": 5,
+        "mix": {
+          "trending": 2,
+          "niche": 2,
+          "brand": 1
+        }
+      },
+      "output": {
+        "target": "content.hashtags"
+      }
+    },
+    {
+      "id": "sensitive_check",
+      "name": "敏感字检查",
+      "component": "sensitive-filter-middleware",
+      "component_type": "middleware",
+      "scope": ["meta.platform", "content.hook.selected", "content.body.content", "content.hashtags"],
+      "max_tokens": 200,
+      "depends_on": ["body", "hashtags"],
+      "config": {
+        "strictness": "platform_specific",
+        "categories": ["political", "violence", "adult", "spam", "platform_banned"],
+        "auto_fix": true
+      },
+      "output": {
+        "target": "control.sensitive_filter"
+      },
+      "on_failure": {
+        "action": "retry_from",
+        "step": "body",
+        "max_retries": 2
+      }
+    }
+  ],
+
+  "quality_gates": [
+    {
+      "after_step": "title",
+      "check": "hook_strength",
+      "threshold": 70,
+      "action_on_fail": "regenerate"
+    },
+    {
+      "after_step": "sensitive_check",
+      "check": "passed",
+      "threshold": true,
+      "action_on_fail": "retry_with_fix"
+    }
+  ],
+
+  "output_assembly": {
+    "format": "xiaohongshu_post",
+    "components": [
+      {
+        "name": "title",
+        "source": "content.hook.selected"
+      },
+      {
+        "name": "body",
+        "source": "content.body.content",
+        "transform": "add_emojis"
+      },
+      {
+        "name": "cta",
+        "source": "content.cta.primary"
+      },
+      {
+        "name": "hashtags",
+        "source": "content.hashtags",
+        "transform": "format_as_tags"
+      }
+    ]
+  },
+
+  "fallback": {
+    "on_total_failure": "return_partial",
+    "include_error_report": true
+  }
+}

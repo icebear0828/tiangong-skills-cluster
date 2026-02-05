@@ -3,7 +3,7 @@ name: writing-commander
 description: >
   写作域总指挥 Skill (L0)。写作任务的第一入口点，负责创意内容写作任务路由、内容策略生成、
   多平台分发调度。当需要：(1) 创作高传播力内容，(2) 多平台内容分发，(3) 爆款内容策划时触发。
-  分析写作任务复杂度，选择最优写作路径，路由到 writing-orchestrator。作为 L0 层 Skill，具有严格契约。
+  分析写作任务复杂度，选择蓝图并路由到 adaptive-orchestrator。作为 L0 层 Skill，具有严格契约。
 ---
 
 # Writing Commander — 写作域总指挥
@@ -13,6 +13,40 @@ description: >
 - 用户任务包含"写文章"、"写内容"、"爆款"、"传播"、"小红书"、"公众号"、"Twitter"等关键词
 - 由 meta-commander 路由到写作域
 - 需要创作高传播力内容时
+
+## 蓝图选择机制
+
+Writing Commander 作为意图路由器，根据用户输入选择最合适的蓝图：
+
+```
+用户输入 → Writing Commander
+              │
+              ├─ 识别平台 + 内容类型 + 复杂度
+              │
+              ▼
+        ┌─────────────────────────────────────────────┐
+        │ 蓝图选择决策树                                │
+        │                                             │
+        │ 小红书 + 短内容 → xiaohongshu_viral (省钱模式) │
+        │ 公众号 + 长文   → wechat_longform (质量模式)  │
+        │ Twitter + Thread → twitter_thread (平衡模式) │
+        │ 深度分析需求    → deep_analysis (质量模式)    │
+        │ 简单任务       → 直接 L2 Skill              │
+        └─────────────────────────────────────────────┘
+              │
+              ▼
+        adaptive-orchestrator (执行蓝图)
+```
+
+### 蓝图映射规则
+
+| 用户意图 | 平台 | 推荐蓝图 | 预估 Token |
+|---------|------|---------|-----------|
+| 短文案/种草/推荐 | 小红书 | xiaohongshu_viral | ~1000 |
+| 深度文章/专题 | 公众号 | wechat_longform | ~3500 |
+| Thread/观点 | Twitter | twitter_thread | ~2000 |
+| 行业分析/研究 | 通用 | deep_analysis | ~4000 |
+| 写标题/分析 | 任意 | 直接 L2 | <500 |
 
 ## 输入契约 (Strict)
 
@@ -258,13 +292,36 @@ description: >
     │
     ├─ "适配X平台" → 直接调用 platform-adapter
     │
-    ├─ "单平台深度内容" → writing-orchestrator
-    │   └─ 三阶段完整流程
+    ├─ "小红书短文案" → adaptive-orchestrator + xiaohongshu_viral 蓝图
+    │   └─ Worker 链，省钱模式
     │
-    ├─ "多平台分发" → writing-orchestrator (multi-platform mode)
-    │   └─ Phase 1-2 → 并行 Phase 3
+    ├─ "公众号深度文章" → adaptive-orchestrator + wechat_longform 蓝图
+    │   └─ Skill 链，质量模式
+    │
+    ├─ "Twitter Thread" → adaptive-orchestrator + twitter_thread 蓝图
+    │   └─ 混合模式
+    │
+    ├─ "深度分析/行业报告" → adaptive-orchestrator + deep_analysis 蓝图
+    │   └─ 完整研究流程
+    │
+    ├─ "多平台分发" → adaptive-orchestrator (多蓝图串行)
+    │   └─ 生成通用版 → 并行适配各平台
     │
     └─ "跨域任务（内容+设计+代码）" → multi-agent-orchestrator
+```
+
+### 敏感字审查集成
+
+所有路径都会经过 sensitive-filter-middleware 检查：
+
+```
+任意内容生成 → sensitive-filter-middleware
+    │
+    ├─ passed=true → 继续流程
+    │
+    └─ passed=false
+        ├─ auto_fix=true → 自动修复 → 重新检查
+        └─ auto_fix=false → 返回问题列表 → 人工处理
 ```
 
 ## 平台策略矩阵
@@ -289,11 +346,16 @@ description: >
 | Skill | 关系 | 调用时机 |
 |-------|------|---------|
 | meta-commander | 被调用 | 由其路由写作任务 |
-| writing-orchestrator | 调用 | M/L 级任务 |
-| hook-generator | 调用 | S 级直接调用或 Phase 2 |
-| virality-scorer | 调用 | S 级直接调用或 Phase 2 |
-| platform-adapter | 调用 | S 级直接调用或 Phase 3 |
-| content-curator | 调用 | Phase 1（复用） |
+| adaptive-orchestrator | 调用 | 执行蓝图 (M/L 级任务) |
+| writing-orchestrator | 调用 | **已废弃**，迁移到 adaptive-orchestrator |
+| sensitive-filter-middleware | 调用 | 所有内容生成后的审查 |
+| title-worker | 调用 | Worker 模式标题生成 |
+| body-worker | 调用 | Worker 模式正文生成 |
+| cta-worker | 调用 | Worker 模式 CTA 生成 |
+| hook-generator | 调用 | S 级直接调用或 Skill 模式 |
+| virality-scorer | 调用 | S 级直接调用或验证阶段 |
+| platform-adapter | 调用 | S 级直接调用或分发阶段 |
+| content-curator | 调用 | 策划阶段（复用） |
 | multi-agent-orchestrator | 调用 | XL 级跨域任务 |
 
 ## 质量标准
